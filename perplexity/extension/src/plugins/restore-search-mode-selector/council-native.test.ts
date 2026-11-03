@@ -32,9 +32,9 @@ describe("verified Council state and catalog",()=>{
   });
 });
 
-function nativeFixture({account="user-a",org=null as string|null,mode="agentic_research",status="authenticated",disabled=false}={}){
+function nativeFixture({account="user-a",org=null as string|null,mode="agentic_research",status="authenticated",disabled=false,functionalStreams=false}={}){
   const chain=(entries:Array<{memoizedProps:unknown;type?:{displayName:string}}>)=>entries.reduceRight<object|null>((parent,e)=>({...e,return:parent}),null);
-  const setModels=vi.fn();const streams={getState:()=>({streams:{}}),subscribe:vi.fn(()=>vi.fn())};
+  const setModels=vi.fn();const api={getState:()=>({streams:{}}),subscribe:vi.fn(()=>vi.fn())};const streams=functionalStreams?Object.assign(()=>undefined,api):api;
   const config={configuredModel:"pplx_agentic_research",askDeepResearchModel:null,compareModels:[...models],setCompareModels:vi.fn(),setConfiguredModel:vi.fn(),modelSpecificLimits:{}};
   const modelButton={getAttribute:(key:string)=>key==="aria-label"?"3 models":null,__reactFiber$test:chain([{memoizedProps:{multiple:true,models:[...models],onModelsChange:setModels,enabled:!disabled,disabled,minModels:2,maxModels:3}}])};
   const composer={querySelectorAll:()=>[modelButton]};
@@ -53,6 +53,7 @@ describe("fresh native Council adapter",()=>{
     const f=nativeFixture();const state=readCouncilNative()!;
     expect(state.account).toBe("user-a|personal");expect(state.scope).toBe("thread-a");expect(state.models).toEqual(models);expect(state.setModels).toBe(f.setModels);expect(state.streams).toBe(f.streams);expect(f.setModels).not.toHaveBeenCalled();
   });
+  it("recognises the callable Zustand stream store observed live",()=>{const f=nativeFixture({functionalStreams:true});expect(readCouncilNative()?.streams).toBe(f.streams)});
   it("keeps organization accounts separate",()=>{nativeFixture({org:"org-b"});expect(readCouncilNative()?.account).toBe("user-a|org-b")});
   it("does not restore through disabled native model controls",()=>{nativeFixture({disabled:true});expect(readCouncilNative()?.setModels).toBeNull()});
   it("does not expose a Council setter in regular Search",()=>{nativeFixture({mode:"search"});expect(readCouncilNative()?.setModels).toBeNull()});
