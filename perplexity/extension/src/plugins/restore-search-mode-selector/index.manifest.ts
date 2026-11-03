@@ -16,6 +16,7 @@ declare module "@/entrypoints/services/plugins/types" {
 
 const meta = definePluginMeta({
   id: "restoreSearchModeSelector",
+  fallbackCompatibilityVersion: "2.9.19",
   name: "Restore Search Mode Selector",
   description:
     "Restore the home Search menu for Deep Research, Model Council and Learn Step by Step. Uses Perplexity's own selection handler; plan limits still apply.",

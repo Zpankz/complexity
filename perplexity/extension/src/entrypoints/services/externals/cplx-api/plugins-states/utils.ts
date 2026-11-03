@@ -112,7 +112,15 @@ export function updatePluginStatesWithFeatureCompat({
 
       const isOutdated = isPluginOutdated({
         currentVersion,
-        requiredVersion: featureCompat[pluginId as PluginId],
+        requiredVersion:
+          (featureCompat as Partial<FeatureCompatibility>)[
+            pluginId as PluginId
+          ] ??
+          (
+            PluginsRegistryService.entries[
+              pluginId as PluginId
+            ] as PluginManifestExports
+          ).meta.fallbackCompatibilityVersion,
       });
 
       return {

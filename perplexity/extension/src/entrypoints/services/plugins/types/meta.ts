@@ -9,6 +9,9 @@ export type PluginMeta<T extends string = string> = {
   name: string;
   description: string;
   devOnly?: boolean;
+  /** Tested local minimum for a fork plugin absent from the compatibility CDN.
+   * An explicit remote requirement always takes precedence. */
+  fallbackCompatibilityVersion?: string;
 };
 
 export type PluginDependencies = {

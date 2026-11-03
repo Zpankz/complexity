@@ -1,17 +1,35 @@
 import { describe, expect, it, vi } from "vitest";
+
 import type { FeatureCompatibility } from "@/entrypoints/services/externals/cplx-api/plugins-states/types";
-import { updatePluginStatesWithFeatureCompat, type PluginsStates } from "@/entrypoints/services/externals/cplx-api/plugins-states/utils";
+import {
+  updatePluginStatesWithFeatureCompat,
+  type PluginsStates,
+} from "@/entrypoints/services/externals/cplx-api/plugins-states/utils";
 
 vi.mock("@/entrypoints/services/plugins", () => ({
-  PluginsRegistryService: { entries: {
-    restoreSearchModeSelector: { meta: { fallbackCompatibilityVersion: "2.9.19" }, dashboardMeta: {} },
-    noFocusByDefault: { meta: {}, dashboardMeta: {} },
-  } },
+  PluginsRegistryService: {
+    entries: {
+      restoreSearchModeSelector: {
+        meta: { fallbackCompatibilityVersion: "2.9.19" },
+        dashboardMeta: {},
+      },
+      noFocusByDefault: { meta: {}, dashboardMeta: {} },
+    },
+  },
 }));
-vi.mock("@/entrypoints/services/plugins/predicates", () => ({ isPublicPlugin: () => true }));
-vi.mock("@/entrypoints/services/plugins/utils", () => ({ getPluginIds: () => [], getPluginDependencies: () => [], getPluginDependents: () => [] }));
+vi.mock("@/entrypoints/services/plugins/predicates", () => ({
+  isPublicPlugin: () => true,
+}));
+vi.mock("@/entrypoints/services/plugins/utils", () => ({
+  getPluginIds: () => [],
+  getPluginDependencies: () => [],
+  getPluginDependents: () => [],
+}));
 
-function compatibility(remote: Record<string, string> = {}, currentVersion = "2.9.19") {
+function compatibility(
+  remote: Record<string, string> = {},
+  currentVersion = "2.9.19",
+) {
   return updatePluginStatesWithFeatureCompat({
     pluginsStates: {
       restoreSearchModeSelector: { isOutdated: false, isOnMaintenance: false },
@@ -29,12 +47,20 @@ describe("opt-in fallback plugin compatibility", () => {
     expect(compatibility().noFocusByDefault.isOutdated).toBe(true);
   });
   it("keeps upstream's newer minimum authoritative", () => {
-    expect(compatibility({ restoreSearchModeSelector: "2.9.20" }).restoreSearchModeSelector.isOutdated).toBe(true);
+    expect(
+      compatibility({ restoreSearchModeSelector: "2.9.20" })
+        .restoreSearchModeSelector.isOutdated,
+    ).toBe(true);
   });
   it("accepts an upstream version meeting the installed build", () => {
-    expect(compatibility({ restoreSearchModeSelector: "2.9.19" }).restoreSearchModeSelector.isOutdated).toBe(false);
+    expect(
+      compatibility({ restoreSearchModeSelector: "2.9.19" })
+        .restoreSearchModeSelector.isOutdated,
+    ).toBe(false);
   });
   it("rejects builds below the fallback's tested version", () => {
-    expect(compatibility({}, "2.9.18").restoreSearchModeSelector.isOutdated).toBe(true);
+    expect(
+      compatibility({}, "2.9.18").restoreSearchModeSelector.isOutdated,
+    ).toBe(true);
   });
 });

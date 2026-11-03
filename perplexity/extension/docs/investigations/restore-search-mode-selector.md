@@ -80,7 +80,7 @@ proposing this fork branch upstream.
 ## Results for this branch
 
 - Node 22.22.3, pnpm 10.25.0; dependencies installed from the unchanged lockfile.
-- 148 unit tests passed, including 25 adapter cases.
+- 152 unit tests passed, including 25 adapter cases and 4 compatibility cases.
 - 11 isolated Chrome acceptance tests passed.
 - TypeScript and plugin ESLint (`--max-warnings=0`) passed.
 - Full Chrome production build passed. The build includes the registered plugin,
@@ -92,3 +92,14 @@ proposing this fork branch upstream.
 - Live nesting regression: this composer has 229 ancestors before its React root;
   the adapter allows up to 512 root ancestors and 60 selector ancestors, still
   failing closed on cycles/incompatible shapes.
+
+The fork plugin declares `fallbackCompatibilityVersion: "2.9.19"`. This is used
+only while its ID is absent from the upstream compatibility CDN; an explicit
+remote requirement always wins. Other unlisted plugins retain the existing
+fail-closed behavior. Without this narrow fallback, upstream's CDN marks any new
+fork plugin as outdated and prevents enabling it in production builds.
+
+The packaged build uses the documented optional official config registry
+(`VITE_CPLX_CDN_URL=https://cdn.cplx.app` in an untracked `.env`). No extension
+permissions were added. Keep the existing installed Complexity disabled while
+trying the unpacked fork build to avoid duplicate content scripts.
