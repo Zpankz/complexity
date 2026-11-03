@@ -203,3 +203,41 @@ test("warns that native Deep Research may migrate to Computer", async ({
   );
   expect(await selections(page)).toEqual([]);
 });
+
+async function searchStartedThread(page: Page) {
+  await fixture(page, "/search/thread-started-in-search");
+  await page.evaluate(`{
+    const chain=props=>props.reduceRight((parent,memoizedProps)=>({memoizedProps,return:parent}),null);
+    const config={configuredModel:'pplx_pro',askDeepResearchModel:null,setConfiguredModel(){}};
+    const parent={configuredModel:'pplx_pro',askDeepResearchModel:null,setConfiguredModel(){}};
+    const button=document.querySelector('[data-testid="ask-input-mode-toggle-width-wrapper"] button');
+    button.__reactFiber$test=chain([window.nativeProps,{isFollowUp:true},{value:config},{value:parent},{value:{currentThreadId:'thread-started-in-search',currentStreamId:null}}]);
+    button.setAttribute('aria-label','Search');
+  }`);
+}
+
+test("restores all native modes in a chat that began with simple Search",async({page})=>{
+  await searchStartedThread(page);
+  await expect(trigger(page)).toHaveAttribute("aria-haspopup","menu");
+  await trigger(page).click();
+  await expect(page.getByRole("menuitemradio")).toHaveCount(4);
+  await page.getByRole("menuitemradio",{name:"Model Council",exact:true}).click();
+  expect(await selections(page)).toEqual(["agentic_research"]);
+});
+
+test("uses the chat native Research handler, not home Computer migration",async({page})=>{
+  await searchStartedThread(page);
+  await expect(trigger(page)).toHaveAttribute("aria-haspopup","menu");
+  await trigger(page).click();
+  const research=page.getByRole("menuitemradio",{name:"Deep Research",exact:true});
+  await expect(research).not.toContainText("May use Computer");
+  await research.click();
+  expect(await selections(page)).toEqual(["research"]);
+});
+
+test("does not treat an unknown Search URL as a validated native thread",async({page})=>{
+  await fixture(page,"/search/unverified-thread");
+  await expect(trigger(page)).not.toHaveAttribute("aria-haspopup","menu");
+  await trigger(page).click();
+  await expect(page.getByRole("menu")).toHaveCount(0);
+});
