@@ -5,5 +5,11 @@ export type CouncilRecord = {
 };
 export type CouncilMemoryStore = {
   read(account: string): Promise<CouncilRecord>;
-  write(account: string, kind: "selected" | "submitted", models: string[], at: number, requestId?: string): Promise<CouncilRecord>;
+  write(
+    account: string,
+    kind: "selected" | "submitted",
+    models: string[],
+    at: number,
+    requestId?: string,
+  ): Promise<CouncilRecord>;
 };

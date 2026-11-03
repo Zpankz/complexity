@@ -301,10 +301,12 @@ test("conflicting equal-time records require confirmation, not a guessed winner"
   expect(await page.evaluate("calls")).toEqual([]);
 });
 
-test("confirms actual native models even if the next animation frame is deferred",async({page})=>{
- await fixture(page,{saved:['b','c'],pauseAfterCallback:true});
- await expect(status(page)).toContainText('Restored');
- expect(await page.evaluate('nativeState.models')).toEqual(['b','c']);
- expect(await page.evaluate('calls')).toEqual([['b','c']]);
- await expect(page.locator('textarea')).toHaveValue('unsubmitted draft');
+test("confirms actual native models even if the next animation frame is deferred", async ({
+  page,
+}) => {
+  await fixture(page, { saved: ["b", "c"], pauseAfterCallback: true });
+  await expect(status(page)).toContainText("Restored");
+  expect(await page.evaluate("nativeState.models")).toEqual(["b", "c"]);
+  expect(await page.evaluate("calls")).toEqual([["b", "c"]]);
+  await expect(page.locator("textarea")).toHaveValue("keep my draft");
 });
