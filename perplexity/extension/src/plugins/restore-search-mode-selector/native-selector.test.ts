@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getNativeSelector, selectNativeMode } from "./native-selector";
+import {
+  getNativeSelector,
+  selectNativeMode,
+} from "@/plugins/restore-search-mode-selector/native-selector";
 
 function fixture(overrides: Record<string, unknown> = {}) {
   const onValueSelect = vi.fn();
@@ -21,7 +24,12 @@ function fixture(overrides: Record<string, unknown> = {}) {
   };
   const fiber = { memoizedProps: props, return: null };
   const button = { __reactFiber$fixture: fiber, disabled: false };
-  return { button: button as unknown as HTMLButtonElement, props, onValueSelect, fiber };
+  return {
+    button: button as unknown as HTMLButtonElement,
+    props,
+    onValueSelect,
+    fiber,
+  };
 }
 
 describe("retained native search-mode selector", () => {
@@ -40,7 +48,8 @@ describe("retained native search-mode selector", () => {
   );
 
   it.each(["asi", "browser_agent", "unknown", "__proto__"])(
-    "never selects unsupported mode %s", (mode) => {
+    "never selects unsupported mode %s",
+    (mode) => {
       const { button, onValueSelect } = fixture();
       expect(selectNativeMode(button, mode)).toBe(false);
       expect(onValueSelect).not.toHaveBeenCalled();
@@ -48,14 +57,23 @@ describe("retained native search-mode selector", () => {
   );
 
   it("does not replace an existing native menu", () => {
-    const { button, onValueSelect } = fixture({ items: [{ value: "search", activeValues: ["search", "research"], renderMenu: () => null }] });
+    const { button, onValueSelect } = fixture({
+      items: [
+        {
+          value: "search",
+          activeValues: ["search", "research"],
+          renderMenu: () => null,
+        },
+      ],
+    });
     expect(getNativeSelector(button)).toBeNull();
     expect(selectNativeMode(button, "research")).toBe(false);
     expect(onValueSelect).not.toHaveBeenCalled();
   });
 
   it.each(["research", "agentic_research", "study", "asi"])(
-    "leaves active %s mode to the native selector", (value) => {
+    "leaves active %s mode to the native selector",
+    (value) => {
       expect(getNativeSelector(fixture({ value }).button)).toBeNull();
     },
   );
@@ -63,7 +81,11 @@ describe("retained native search-mode selector", () => {
   it.each([
     { items: [] },
     { items: [{ value: "search", hidden: true }] },
-    { items: [{ value: "search", lockedReason: "Disabled by your organization" }] },
+    {
+      items: [
+        { value: "search", lockedReason: "Disabled by your organization" },
+      ],
+    },
     { onValueSelect: null },
     { testIdPrefix: "other-toggle" },
   ])("fails closed when selector props are incompatible: %j", (props) => {
@@ -71,7 +93,9 @@ describe("retained native search-mode selector", () => {
   });
 
   it("honours native activeValues instead of inventing mode availability", () => {
-    const { button, onValueSelect } = fixture({ items: [{ value: "search", activeValues: ["search", "study"] }] });
+    const { button, onValueSelect } = fixture({
+      items: [{ value: "search", activeValues: ["search", "study"] }],
+    });
     expect(selectNativeMode(button, "research")).toBe(false);
     expect(onValueSelect).not.toHaveBeenCalled();
   });
@@ -85,13 +109,44 @@ describe("retained native search-mode selector", () => {
 
   it("reads the current React tree rather than a stale alternate", () => {
     const { button, fiber } = fixture();
-    const current = { memoizedProps: { ...fiber.memoizedProps, value: "study" }, return: null };
-    const currentRoot = { stateNode: { current: null as unknown }, return: null };
+    const current = {
+      memoizedProps: { ...fiber.memoizedProps, value: "study" },
+      return: null,
+    };
+    const currentRoot = {
+      stateNode: { current: null as unknown },
+      return: null,
+    };
     currentRoot.stateNode.current = currentRoot;
     const staleRoot = { stateNode: currentRoot.stateNode, return: null };
     Object.assign(fiber, { return: staleRoot, alternate: current });
     Object.assign(current, { return: currentRoot });
     expect(getNativeSelector(button)).toBeNull();
+  });
+
+  it("keeps an already committed DOM fiber instead of its stale alternate", () => {
+    const { button, fiber, onValueSelect } = fixture();
+    const root = { stateNode: { current: null as unknown }, return: null };
+    root.stateNode.current = root;
+    Object.assign(fiber, {
+      return: root,
+      alternate: {
+        memoizedProps: { ...fiber.memoizedProps, value: "study" },
+        return: null,
+      },
+    });
+    expect(getNativeSelector(button)?.onValueSelect).toBe(onValueSelect);
+  });
+
+  it("supports the live home composer nested over 200 providers deep", () => {
+    const { button, fiber, onValueSelect } = fixture();
+    let root: object = fiber;
+    for (let i = 0; i < 250; i++) {
+      const next = { return: null };
+      Object.assign(root, { return: next });
+      root = next;
+    }
+    expect(getNativeSelector(button)?.onValueSelect).toBe(onValueSelect);
   });
 
   it("bounds traversal on unexpected cyclic fibers", () => {
