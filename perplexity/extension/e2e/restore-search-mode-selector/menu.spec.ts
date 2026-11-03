@@ -216,28 +216,39 @@ async function searchStartedThread(page: Page) {
   }`);
 }
 
-test("restores all native modes in a chat that began with simple Search",async({page})=>{
+test("restores all native modes in a chat that began with simple Search", async ({
+  page,
+}) => {
   await searchStartedThread(page);
-  await expect(trigger(page)).toHaveAttribute("aria-haspopup","menu");
+  await expect(trigger(page)).toHaveAttribute("aria-haspopup", "menu");
   await trigger(page).click();
   await expect(page.getByRole("menuitemradio")).toHaveCount(4);
-  await page.getByRole("menuitemradio",{name:"Model Council",exact:true}).click();
+  await page
+    .getByRole("menuitemradio", { name: "Model Council", exact: true })
+    .click();
   expect(await selections(page)).toEqual(["agentic_research"]);
 });
 
-test("uses the chat native Research handler, not home Computer migration",async({page})=>{
+test("uses the chat native Research handler, not home Computer migration", async ({
+  page,
+}) => {
   await searchStartedThread(page);
-  await expect(trigger(page)).toHaveAttribute("aria-haspopup","menu");
+  await expect(trigger(page)).toHaveAttribute("aria-haspopup", "menu");
   await trigger(page).click();
-  const research=page.getByRole("menuitemradio",{name:"Deep Research",exact:true});
+  const research = page.getByRole("menuitemradio", {
+    name: "Deep Research",
+    exact: true,
+  });
   await expect(research).not.toContainText("May use Computer");
   await research.click();
   expect(await selections(page)).toEqual(["research"]);
 });
 
-test("does not treat an unknown Search URL as a validated native thread",async({page})=>{
-  await fixture(page,"/search/unverified-thread");
-  await expect(trigger(page)).not.toHaveAttribute("aria-haspopup","menu");
+test("does not treat an unknown Search URL as a validated native thread", async ({
+  page,
+}) => {
+  await fixture(page, "/search/unverified-thread");
+  await expect(trigger(page)).not.toHaveAttribute("aria-haspopup", "menu");
   await trigger(page).click();
   await expect(page.getByRole("menu")).toHaveCount(0);
 });

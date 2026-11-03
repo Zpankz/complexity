@@ -1,10 +1,9 @@
+import { getLegacyThreadScope } from "@/plugins/restore-search-mode-selector/legacy-research";
 import {
   getNativeSelector,
   selectNativeMode,
   MODE_OPTIONS,
 } from "@/plugins/restore-search-mode-selector/native-selector";
-
-import { getLegacyThreadScope } from "@/plugins/restore-search-mode-selector/legacy-research";
 
 const SELECTOR =
   '[data-testid="ask-input-mode-toggle-width-wrapper"] button[aria-pressed="true"]';
@@ -37,7 +36,8 @@ export function installSearchModeMenu(): () => void {
     )
       return null;
     const isHome = location.pathname === "/";
-    const isThread = /^\/search\/(?!new\/?$)[^/]+\/?$/.test(location.pathname) &&
+    const isThread =
+      /^\/search\/(?!new\/?$)[^/]+\/?$/.test(location.pathname) &&
       getLegacyThreadScope(button) != null;
     return isHome || isThread ? getNativeSelector(button) : null;
   }

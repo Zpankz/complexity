@@ -1,4 +1,6 @@
 import { AsyncLoaderRegistry } from "@/entrypoints/contexts/content-scripts/services/async-loaders";
+import { registerCouncilMemoryBridge } from "@/plugins/restore-search-mode-selector/council-bridge";
+import { CouncilStorageService } from "@/plugins/restore-search-mode-selector/council-storage.bg-worker";
 import { injectMainWorldScript } from "@/utils/dom-utils/generics";
 
 import menuScript from "@/plugins/restore-search-mode-selector/main-world?script&module";
@@ -14,6 +16,7 @@ export default function register() {
     dependencies: ["cache:pluginsEnableStates"],
     loader: async ({ "cache:pluginsEnableStates": enabled }) => {
       if (!enabled.restoreSearchModeSelector) return;
+      registerCouncilMemoryBridge(CouncilStorageService.Proxy);
       await injectMainWorldScript({
         url: chrome.runtime.getURL(menuScript),
         head: true,

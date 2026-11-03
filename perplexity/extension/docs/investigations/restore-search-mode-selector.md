@@ -140,3 +140,110 @@ ESLint, TypeScript and the full Chrome production build all pass. A separate
 read-only review found no direct model-write/query-submission path or actionable
 scope/cleanup bug. The feature remains limited to the native selection path;
 server-side billing for a new query was not tested.
+
+## Search-started chats, exact Council memory, and readable skill context
+
+### Existing chats that began in Search
+
+The user's simple-Search thread also had `hideModeMenus: true` while its current
+mode was Search. Its existing native Plus menu still offered Deep Research
+(Included in Pro), Model Council and Learn. The fallback mode dropdown now applies
+to these verified ordinary Search follow-up contexts as well as home. It does
+not infer a valid chat from its URL alone, replace an available native menu,
+force Computer back to Search, or manipulate skill chips.
+
+### Council models
+
+- A verified authenticated `SessionContext` binds storage to user ID and
+  organization (or personal scope). No credentials, prompts or report contents
+  are stored. The isolated bridge rechecks `/api/auth/session` before each
+  background storage operation and rejects a different account.
+- One background-owned queue persists independent last-selected and
+  last-submitted records in Chrome local extension storage. Ordered IDs retain
+  reasoning variants, with two or three distinct native model IDs required.
+  Older async writes cannot replace a newer record of the same kind.
+- Restoration uses the newer selected/submitted record, the current authenticated
+  `/rest/models/config/v2` catalog, fresh native `onModelsChange`, and a subsequent
+  exact native-state comparison. It does not rename replaced models or silently
+  drop unavailable IDs. Unknown managed policies require explicit confirmation.
+- Current model names and restoration state are visible below the composer, not
+  clipped inside the native fixed-width mode toggle. Exact IDs are also in the
+  status tooltip. Missing models, unavailable callbacks, storage errors or a
+  failed restoration require review before a Council submission; mode/picker
+  controls remain keyboard-accessible so users can leave Council.
+- A read-only subscription to native `StreamStateContext` observes only new
+  Council streams and records the actual `params.compare_model_preferences`
+  array (with `model_preference` identifying Council). Merely opening/editing a
+  selector is not recorded as a run. Existing stream history is baselined, not
+  relabeled as a newly executed query. Executions predating the plugin are not
+  claimed recoverable.
+
+### Skill access investigation and the implemented workaround
+
+The completed Research report explicitly said it could not access the linked
+Perplexity skill. Its earlier “Loading skill” and `get_url_content` activity
+labels therefore did not establish successful skill loading. The later Running
+code activity saved an explanation, not proof of running the skill's engine.
+
+The signed-in browser could read the exact skill's file viewer: SKILL.md was
+29,837 characters, a runtime reference 11,038, and a Python entrypoint 191,529.
+The package contained 88 files. No private source content or real skill/account
+IDs are included in this repository's tests or documentation.
+
+Official implementation detail:
+https://www.perplexity.ai/hub/blog/designing-refining-and-maintaining-agent-skills-at-perplexity
+explains that Computer's `load_skill` copies the skill directory into an isolated
+sandbox, loads declared dependencies, and progressively reads supporting files.
+A readable instruction file does not establish that runtime or its tools,
+credentials, dependencies or executable files are available in ordinary Research.
+
+The plugin now adds **Copy file as prompt context** to an authenticated skill
+file viewer in raw Markdown/source mode. The selected native viewer's filePath,
+full content, loading/error state and raw DOM text must agree. A user click copies
+that exact complete file, with provenance and an explicit one-file/runtime caveat.
+There is no summarization, frontmatter stripping or silent truncation; UTF-8
+context above 1 MB is rejected. Preview-only, stale-navigation, cloned-source or
+clipboard-failure states are not reported as success. No polling, prompt
+insertion, automatic mode switch, real clipboard write during validation, or
+query submission is performed by the agent.
+
+Manual use: open the skill, select SKILL.md, select Markdown, click Copy file as
+prompt context, and paste the resulting plain text into Search/Research. Repeat
+for any necessary supporting files the user chooses to supply. This works around
+a private URL fetch failure by transferring readable content. It is not a claim
+that an 88-file executable skill has been installed or can fully run outside
+Computer; that remains a server/runtime capability boundary.
+
+### Final verification
+
+- Native Council adapter read the live Search-started thread's exact three IDs
+  (`claudefable51`, `claude55opus`, `gpt6_astra`), exposed its native multi-model
+  callback and callable stream store, and parsed the current authenticated model
+  catalog (19 allowed variants, no organization policy).
+- The live copy test captured the entire 29,837-character root with frontmatter
+  intact through a temporary clipboard stub, then restored the browser's clipboard
+  API. A native nested Files header exposed a remount loop missed by the first
+  fixture; containment-based mounting and a dedicated stable-node regression fix it.
+- Same-millisecond selected/submitted events now use per-account monotonic stamps;
+  conflicting equal-time records require confirmation. A storage result that did
+  not retain the intended selection/run is not labeled saved.
+- Pure adapter/storage/bridge core coverage: 97.93% lines, 91.68% branches,
+  100% functions (129 tests). Browser-controller tests cover the UI paths separately.
+- No query, credit-consuming run, real clipboard write or full skill execution was
+  performed. Native skill execution in ordinary Research remains unverified.
+- Packaged-extension browser-restart smoke test: [blocked] this machine's installed
+  system Chrome did not start an unpacked-extension service worker from automated
+  launch flags, and the separate extension-capable Playwright Chromium is not
+  installed. The Chrome build must be manually loaded/reloaded before real
+  cross-restart verification. Typed bridge, queue and persisted-record restoration
+  are covered by automated tests, not claimed as that missing end-to-end check.
+
+The live Council callback also round-tripped the exact existing three-model set
+against the authenticated catalog without submitting anything. A delayed animation
+frame initially caused a false confirmation timeout despite matching native IDs;
+the deadline now cancels the deferred frame and re-reads committed native state
+before deciding success or failure. A deferred-frame regression reproduces this
+without using the network or sending a query.
+
+Final gate: 256 unit tests and 68 browser scenarios pass; TypeScript, plugin
+lint, production build and Chrome ZIP integrity all pass. No PR was opened.

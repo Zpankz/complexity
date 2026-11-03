@@ -18,12 +18,23 @@ function SettingsUi() {
         }}
       />
       <p>
-        Reload Perplexity after changing this setting. Restores the home Search
-        dropdown only when its native menu is missing. Existing Search chats get
-        a Pro Research shortcut that invokes their native Included in Pro
-        action. It does not force the home page into legacy Research. Perplexity
-        still enforces your plan, organization restrictions and usage limits.
-        This does not guarantee credit-free requests.
+        Reload Perplexity after changing this setting. Restores missing mode
+        menus on home and in chats that started in Search. Existing Search chats
+        also get the native Included in Pro Research shortcut. Home Research may
+        still route to Computer. Native plan and usage limits still apply.
+      </p>
+      <p>
+        Council remembers exact ordered model IDs per Perplexity account and
+        organization. It shows current model names and keeps selected models
+        distinct from observed submitted runs. Unavailable saved models require
+        confirmation instead of silently using defaults. Runs before
+        installation cannot be assumed recorded.
+      </p>
+      <p>
+        Skill file viewers offer Copy file as prompt context in raw Markdown or
+        source view. Paste manually into Search or Research. Only that file is
+        copied; supporting files, tools, credentials and dependencies are not
+        installed. This is not native Computer skill execution.
       </p>
     </div>
   );
