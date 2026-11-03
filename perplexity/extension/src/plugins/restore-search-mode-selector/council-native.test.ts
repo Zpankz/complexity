@@ -7,7 +7,7 @@ afterEach(()=>vi.unstubAllGlobals());
 
 describe("verified Council state and catalog",()=>{
   it("preserves exact ordered model and reasoning IDs",()=>{expect(validCouncilModels(models)).toEqual(models)});
-  it.each([[],["a"],["a","a"],["a","b","c","d"],["a",null],["a","bad model"],"a,b"])("rejects malformed selection %j",value=>{expect(validCouncilModels(value)).toBeNull()});
+  it.each([[],["a"],["a","a"],["a","b","c","d"],["a",null],["a","bad model"],"a,b"].map(value=>[value]))("rejects malformed selection %j",value=>{expect(validCouncilModels(value)).toBeNull()});
   it("uses current selectable search configs, not deprecated model aliases or defaults",()=>{
     const catalog=parseCouncilCatalog(rawCatalog)!;
     expect([...catalog.allowed]).toEqual(models);

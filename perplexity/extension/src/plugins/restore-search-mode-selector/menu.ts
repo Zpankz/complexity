@@ -4,6 +4,8 @@ import {
   MODE_OPTIONS,
 } from "@/plugins/restore-search-mode-selector/native-selector";
 
+import { getLegacyThreadScope } from "@/plugins/restore-search-mode-selector/legacy-research";
+
 const SELECTOR =
   '[data-testid="ask-input-mode-toggle-width-wrapper"] button[aria-pressed="true"]';
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -29,13 +31,15 @@ export function installSearchModeMenu(): () => void {
   function read(button: HTMLButtonElement | null) {
     if (
       !button?.isConnected ||
-      location.pathname !== "/" ||
       !button.matches(SELECTOR) ||
       button.getAttribute("aria-label") !== "Search" ||
       button.getAttribute("aria-disabled") === "true"
     )
       return null;
-    return getNativeSelector(button);
+    const isHome = location.pathname === "/";
+    const isThread = /^\/search\/(?!new\/?$)[^/]+\/?$/.test(location.pathname) &&
+      getLegacyThreadScope(button) != null;
+    return isHome || isThread ? getNativeSelector(button) : null;
   }
 
   function setAttribute(name: string, value: string) {
@@ -206,7 +210,7 @@ export function installSearchModeMenu(): () => void {
       const label = document.createElement("span");
       label.textContent = option.label;
       item.setAttribute("aria-label", option.label);
-      if (option.value === "research") {
+      if (option.value === "research" && location.pathname === "/") {
         item.setAttribute(
           "aria-description",
           "Perplexity may route Deep Research to Computer. Credits may apply.",
