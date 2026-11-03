@@ -6,7 +6,7 @@ let script: string;
 const status = (page: Page) =>
   page.getByTestId("complexity-council-preferences");
 const shim = `
-export function readCouncilNative(){return window.nativeState && {...window.nativeState,composer:document.querySelector('form'),anchor:document.querySelector('#mode'),setModels: window.noCallback?null:ids=>{window.calls.push(ids);if(window.callbackFail)throw Error('callback failed');if(!window.noApply){window.nativeState.models=[...ids];window.touch()}},streams:window.streams}}
+export function readCouncilNative(){return window.nativeState && {...window.nativeState,composer:document.querySelector('form'),anchor:document.querySelector('#mode'),setModels: window.noCallback?null:ids=>{window.calls.push(ids);if(window.callbackFail)throw Error('callback failed');if(!window.noApply){window.nativeState.models=[...ids];if(window.opts.pauseAfterCallback)window.deferFrames=true;window.touch()}},streams:window.streams}}
 export function validCouncilModels(v){return Array.isArray(v)&&v.length>=2&&v.length<=3&&v.every(x=>typeof x==='string'&&x.length)&&new Set(v).size===v.length?[...v]:null}
 export function parseCouncilCatalog(v){return v?{labels:v.labels,allowed:new Set(v.allowed),managed:!!v.managed,councilModel:'council'}:null}
 export function councilModelIssues(ids,c,l={}){if(c.managed)return ['Managed policy requires explicit selection'];return ids.filter(id=>!c.allowed.has(id)||l[id]===0).map(id=>'Unavailable '+id)}
@@ -55,7 +55,7 @@ async function fixture(page: Page, options: Record<string, unknown> = {}) {
   );
   await page.goto("https://www.perplexity.ai/");
   await page.addScriptTag({
-    content: `window.opts=${JSON.stringify(options)};window.calls=[];window.writes=[];window.submits=0;window.touch=()=>document.querySelector('i').textContent=Math.random();window.nativeState={account:'alice:org',scope:'home',mode:'agentic_research',models:['a','b'],limits:{}};window.records=JSON.parse(localStorage.records||'{}');if(opts.saved){records['alice:org']={selected:{models:opts.saved,at:1}};localStorage.records=JSON.stringify(records)};window.callbackFail=opts.callbackFail;window.noApply=opts.noApply;window.noCallback=opts.noCallback;window.listeners=new Set();window.runs=opts.runs||[];window.streams={getState:()=>runs,subscribe:cb=>{listeners.add(cb);return()=>listeners.delete(cb)}};window.emit=r=>{runs.push(r);listeners.forEach(cb=>cb())};window.store={read:async a=>{if(opts.readFail)throw Error('read denied');return records[a]||{}},write:async(a,k,models,at,requestId)=>{if(opts.writeFail)throw Error('write denied');if(opts.ignoreWrite)return records[a]||{};writes.push({a,k,models,requestId});records[a]={...records[a],[k]:{models,at,...(requestId?{requestId}:{})}};localStorage.records=JSON.stringify(records);return records[a]}};document.querySelector('form').addEventListener('submit',e=>{e.preventDefault();submits++});window.catalog={labels:{a:'Alpha',b:'Beta Thinking',c:'Gamma'},allowed:['a','b','c'],managed:opts.managed};${script};window.install=()=>CouncilTest.installCouncilPreferences({store,fetchCatalog:async()=>{if(opts.delayCatalog)await new Promise(resolve=>window.releaseCatalog=resolve);if(opts.catalogFail)throw Error('offline');return catalog},now:()=>42});window.cleanup=install();`,
+    content: `window.opts=${JSON.stringify(options)};window.calls=[];window.writes=[];window.submits=0;window.touch=()=>document.querySelector('i').textContent=Math.random();window.nativeState={account:'alice:org',scope:'home',mode:'agentic_research',models:['a','b'],limits:{}};window.records=JSON.parse(localStorage.records||'{}');if(opts.saved){records['alice:org']={selected:{models:opts.saved,at:1}};localStorage.records=JSON.stringify(records)};window.callbackFail=opts.callbackFail;window.noApply=opts.noApply;window.noCallback=opts.noCallback;window.listeners=new Set();window.runs=opts.runs||[];window.streams={getState:()=>runs,subscribe:cb=>{listeners.add(cb);return()=>listeners.delete(cb)}};window.emit=r=>{runs.push(r);listeners.forEach(cb=>cb())};window.store={read:async a=>{if(opts.readFail)throw Error('read denied');return records[a]||{}},write:async(a,k,models,at,requestId)=>{if(opts.writeFail)throw Error('write denied');if(opts.ignoreWrite)return records[a]||{};writes.push({a,k,models,requestId});records[a]={...records[a],[k]:{models,at,...(requestId?{requestId}:{})}};localStorage.records=JSON.stringify(records);return records[a]}};document.querySelector('form').addEventListener('submit',e=>{e.preventDefault();submits++});window.catalog={labels:{a:'Alpha',b:'Beta Thinking',c:'Gamma'},allowed:['a','b','c'],managed:opts.managed};${script};window.install=()=>CouncilTest.installCouncilPreferences({store,fetchCatalog:async()=>{if(opts.delayCatalog)await new Promise(resolve=>window.releaseCatalog=resolve);if(opts.catalogFail)throw Error('offline');return catalog},now:()=>42});if(opts.pauseAfterCallback){const raf=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=cb=>raf(t=>{if(!window.deferFrames)cb(t)})}window.cleanup=install();`,
   });
 }
 test("automatically restores exact ordered IDs and labels without submitting or changing draft", async ({
@@ -255,27 +255,56 @@ test("unresolved preferences do not block keyboard mode or picker controls", asy
   expect(await page.evaluate("submits")).toBe(0);
 });
 
-test("a later selection wins after a run even with a same-millisecond clock",async({page})=>{
- await fixture(page);await expect(status(page)).toContainText('Saved');
- await page.evaluate(`emit({requestId:'run-latest',params:{model_preference:'council',compare_model_preferences:['b','c']}})`);
- await expect.poll(()=>page.evaluate('records["alice:org"].submitted?.models')).toEqual(['b','c']);
- await page.getByRole('button',{name:'2 models',exact:true}).click();
- await page.evaluate(`nativeState.models=['c','a'];touch()`);
- await expect.poll(()=>page.evaluate('records["alice:org"].selected.models')).toEqual(['c','a']);
- await page.evaluate(`cleanup();nativeState.models=['a','b'];cleanup=install()`);
+test("a later selection wins after a run even with a same-millisecond clock", async ({
+  page,
+}) => {
+  await fixture(page);
+  await expect(status(page)).toContainText("Saved");
+  await page.evaluate(
+    `emit({requestId:'run-latest',params:{model_preference:'council',compare_model_preferences:['b','c']}})`,
+  );
+  await expect
+    .poll(() => page.evaluate('records["alice:org"].submitted?.models'))
+    .toEqual(["b", "c"]);
+  await page.getByRole("button", { name: "2 models", exact: true }).click();
+  await page.evaluate(`nativeState.models=['c','a'];touch()`);
+  await expect
+    .poll(() => page.evaluate('records["alice:org"].selected.models'))
+    .toEqual(["c", "a"]);
+  await page.evaluate(
+    `cleanup();nativeState.models=['a','b'];cleanup=install()`,
+  );
+  await expect(status(page)).toContainText("Restored");
+  expect(await page.evaluate("nativeState.models")).toEqual(["c", "a"]);
+});
+test("ignored stale storage writes are not called saved", async ({ page }) => {
+  await fixture(page, { saved: ["b", "c"] });
+  await expect(status(page)).toContainText("Restored");
+  await page.evaluate("opts.ignoreWrite=true");
+  await page.getByRole("button", { name: "2 models", exact: true }).click();
+  await page.evaluate(`nativeState.models=['a','c'];touch()`);
+  await expect(status(page)).toContainText(/unconfirmed|failed/i);
+  expect(await page.evaluate('records["alice:org"].selected.models')).toEqual([
+    "b",
+    "c",
+  ]);
+});
+test("conflicting equal-time records require confirmation, not a guessed winner", async ({
+  page,
+}) => {
+  await fixture(page, { saved: ["b", "c"], delayCatalog: true });
+  await expect(status(page)).toContainText("Loading");
+  await page.evaluate(
+    `records['alice:org'].submitted={models:['a','c'],at:1,requestId:'unknown-order'};releaseCatalog()`,
+  );
+  await expect(status(page)).toContainText(/ambiguous|confirm/i);
+  expect(await page.evaluate("calls")).toEqual([]);
+});
+
+test("confirms actual native models even if the next animation frame is deferred",async({page})=>{
+ await fixture(page,{saved:['b','c'],pauseAfterCallback:true});
  await expect(status(page)).toContainText('Restored');
- expect(await page.evaluate('nativeState.models')).toEqual(['c','a']);
-});
-test("ignored stale storage writes are not called saved",async({page})=>{
- await fixture(page,{saved:['b','c']});await expect(status(page)).toContainText('Restored');
- await page.evaluate('opts.ignoreWrite=true');await page.getByRole('button',{name:'2 models',exact:true}).click();
- await page.evaluate(`nativeState.models=['a','c'];touch()`);
- await expect(status(page)).toContainText(/unconfirmed|failed/i);
- expect(await page.evaluate('records["alice:org"].selected.models')).toEqual(['b','c']);
-});
-test("conflicting equal-time records require confirmation, not a guessed winner",async({page})=>{
- await fixture(page,{saved:['b','c'],delayCatalog:true});await expect(status(page)).toContainText('Loading');
- await page.evaluate(`records['alice:org'].submitted={models:['a','c'],at:1,requestId:'unknown-order'};releaseCatalog()`);
- await expect(status(page)).toContainText(/ambiguous|confirm/i);
- expect(await page.evaluate('calls')).toEqual([]);
+ expect(await page.evaluate('nativeState.models')).toEqual(['b','c']);
+ expect(await page.evaluate('calls')).toEqual([['b','c']]);
+ await expect(page.locator('textarea')).toHaveValue('unsubmitted draft');
 });
