@@ -198,10 +198,24 @@ test("does not attribute a stale displayed source to a newly navigated skill", a
   await expect(page.getByRole("status")).toContainText(/changed|stale|reload/i);
 });
 
-test("nested native Files headings do not recreate the copy control every frame",async({page})=>{
- await fixture(page,{nestedHeading:true});await expect(copy(page)).toBeEnabled();
- await page.evaluate(()=>{window.originalCopy=document.querySelector('[data-testid="complexity-copy-skill-context"]');document.body.dataset.refresh='once';});
- await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
- expect(await page.evaluate(()=>document.querySelector('[data-testid="complexity-copy-skill-context"]')===window.originalCopy)).toBe(true);
- await copy(page).click();expect(await page.evaluate('window.copied.length')).toBe(1);
+test("nested native Files headings do not recreate the copy control every frame", async ({
+  page,
+}) => {
+  await fixture(page, { nestedHeading: true });
+  await expect(copy(page)).toBeEnabled();
+  await copy(page).evaluate((el) =>
+    el.setAttribute("data-stability", "original"),
+  );
+  await page.evaluate(() => {
+    document.body.dataset.refresh = "once";
+  });
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  await expect(copy(page)).toHaveAttribute("data-stability", "original");
+  await copy(page).click();
+  expect(await page.evaluate("window.copied.length")).toBe(1);
 });
