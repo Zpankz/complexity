@@ -5,7 +5,7 @@ import { build } from "vite";
 
 let script: string;
 const routePath =
-  "/computer/plugins/skills/898bf383-6e23-4469-8464-c2e88637545a";
+  "/computer/plugins/skills/11111111-1111-4111-8111-111111111111";
 const source =
   '---\nname: fixture\n---\n\n# Instructions\n```python\nprint("hi")\n```\n\n  preserve spaces  \n';
 const caveat =
@@ -51,6 +51,7 @@ async function fixture(page: Page, options: Record<string, unknown> = {}) {
     if(options.preview){fileProps.viewMode='preview';document.querySelector('[aria-label="Preview"]').setAttribute('aria-checked','true');document.querySelector('[aria-label="Markdown"]').setAttribute('aria-checked','false');pre.innerHTML='<code>rendered excerpt</code>'}
     if(options.oversize){pre.textContent='界'.repeat(350000);fileProps.content=pre.textContent}
     if(!options.clone)pre.__reactFiber$fixture={memoizedProps:{children:pre.textContent},return:{memoizedProps:fileProps,return:null}};
+    if(options.nestedHeading){const heading=document.querySelector('h2');const wrapper=document.createElement('div');heading.before(wrapper);wrapper.append(heading)}
     if(options.noAuth)document.querySelector('nav').remove();
     Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{if(options.clipboardFail)throw Error('denied');window.copied.push(text)}}});
     ${script}
@@ -184,11 +185,23 @@ test("synchronous click rechecks loading/error instead of using cached text", as
   await expect(copy(page)).toBeEnabled();
 });
 
-test("does not attribute a stale displayed source to a newly navigated skill",async({page})=>{
+test("does not attribute a stale displayed source to a newly navigated skill", async ({
+  page,
+}) => {
   await fixture(page);
   await expect(copy(page)).toBeEnabled();
-  await page.evaluate("history.pushState({},'', '/computer/plugins/skills/another-skill');dispatchEvent(new PopStateEvent('popstate'))");
-  await copy(page).click();
-  expect(await page.evaluate('window.copied')).toEqual([]);
-  await expect(page.getByRole('status')).toContainText(/changed|stale|reload/i);
+  await page.evaluate(
+    "history.pushState({},'', '/computer/plugins/skills/another-skill');dispatchEvent(new PopStateEvent('popstate'))",
+  );
+  await expect(copy(page)).toBeDisabled();
+  expect(await page.evaluate("window.copied")).toEqual([]);
+  await expect(page.getByRole("status")).toContainText(/changed|stale|reload/i);
+});
+
+test("nested native Files headings do not recreate the copy control every frame",async({page})=>{
+ await fixture(page,{nestedHeading:true});await expect(copy(page)).toBeEnabled();
+ await page.evaluate(()=>{window.originalCopy=document.querySelector('[data-testid="complexity-copy-skill-context"]');document.body.dataset.refresh='once';});
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ expect(await page.evaluate(()=>document.querySelector('[data-testid="complexity-copy-skill-context"]')===window.originalCopy)).toBe(true);
+ await copy(page).click();expect(await page.evaluate('window.copied.length')).toBe(1);
 });
