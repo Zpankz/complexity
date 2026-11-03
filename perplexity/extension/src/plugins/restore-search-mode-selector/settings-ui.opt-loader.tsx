@@ -19,9 +19,11 @@ function SettingsUi() {
       />
       <p>
         Reload Perplexity after changing this setting. Restores the home Search
-        dropdown only when its native menu is missing. Perplexity still enforces
-        your plan, organization restrictions and usage limits. This does not
-        guarantee credit-free requests.
+        dropdown only when its native menu is missing. Existing Search chats get
+        a Pro Research shortcut that invokes their native Included in Pro
+        action. It does not force the home page into legacy Research. Perplexity
+        still enforces your plan, organization restrictions and usage limits.
+        This does not guarantee credit-free requests.
       </p>
     </div>
   );

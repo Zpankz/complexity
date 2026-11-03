@@ -19,7 +19,7 @@ const meta = definePluginMeta({
   fallbackCompatibilityVersion: "2.9.19",
   name: "Restore Search Mode Selector",
   description:
-    "Restore the home Search menu for Deep Research, Model Council and Learn Step by Step. Uses Perplexity's own selection handler; plan limits still apply.",
+    "Restore the home Search menu and expose Included in Pro Deep Research in existing Search chats. Uses Perplexity's native actions; plan limits still apply.",
 });
 const dashboardMeta = definePluginDashboardMeta({
   tags: ["ui", "experimental"],

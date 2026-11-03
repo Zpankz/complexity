@@ -6,7 +6,7 @@ export const MODE_OPTIONS = [
   { value: "study", label: "Learn Step by Step", icon: "book" },
 ] as const;
 
-type Fiber = {
+export type Fiber = {
   return?: Fiber | null;
   alternate?: Fiber | null;
   memoizedProps?: unknown;
@@ -34,17 +34,20 @@ function currentFiber(fiber: Fiber): Fiber | null {
     : fiber;
 }
 
+export function getElementFiber(element: Element): Fiber | null {
+  const key = Object.keys(element).find((key) =>
+    key.startsWith("__reactFiber$"),
+  );
+  if (key == null) return null;
+  const initial = (element as unknown as Record<string, Fiber>)[key];
+  return initial == null ? null : currentFiber(initial);
+}
+
 export function getNativeSelector(
   button: HTMLButtonElement,
 ): NativeSelector | null {
   if (button.disabled) return null;
-  const key = Object.keys(button).find((key) =>
-    key.startsWith("__reactFiber$"),
-  );
-  if (key == null) return null;
-  const initial = (button as unknown as Record<string, Fiber>)[key];
-  if (initial == null) return null;
-  let fiber = currentFiber(initial);
+  let fiber = getElementFiber(button);
 
   for (
     let depth = 0;

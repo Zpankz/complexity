@@ -103,3 +103,40 @@ The packaged build uses the documented optional official config registry
 (`VITE_CPLX_CDN_URL=https://cdn.cplx.app` in an untracked `.env`). No extension
 permissions were added. Keep the existing installed Complexity disabled while
 trying the unpacked fork build to avoid duplicate content scripts.
+
+## Follow-up: the existing-thread Included in Pro path
+
+The earlier limitation applies to the **home/Academic, no-thread selection path**,
+not all Deep Research. The user's existing Search chat exposed a distinct native
+`+` entry labeled **Deep Research Included in Pro**. Its scoped configuration was
+`configuredModel: pplx_alpha`, mode `research`, `askDeepResearchModel: null`; its
+separate parent global config remained an ordinary Search model. The native
+client's Computer migration code only runs when there is no current thread or
+stream, explaining why this follow-up path stays on legacy Research.
+
+The plugin now adds **Pro Research** beside the mode control in an existing
+`/search/<thread>` composer. On click it opens that composer's native `+` menu,
+checks the actual Included in Pro badge, enabled `featured:deep-research` action,
+global deep-research skill payload, and exact owning config object/thread ID,
+then invokes the native row's fresh `onSelect`. The native action keeps its own
+plan/usage gate. No direct model setter, global preference write, stored native
+callback, request interceptor, navigation trick or query submission is used.
+
+The shortcut is absent on home, Academic, Projects, new/empty Search sessions and
+Computer. It does not activate during a running response, when Add is disabled,
+when the native Pro badge is missing, or after the thread/provider changes. Its
+menu lookup is bounded to 1.5 seconds, cancels on navigation/uninstall, and
+preserves drafts. When Research is already active, clicking is a no-op.
+
+Same-source live validation switched an empty existing-thread follow-up from
+Search through the new shortcut, then verified `research / pplx_alpha`, no
+Computer Research model, active shortcut state and an empty unchanged draft.
+No new query was submitted. This supersedes any interpretation of the earlier
+home-only finding as a claim that legacy Research is unavailable everywhere.
+
+Updated verification: **170 unit tests** (including 18 new legacy-action guards),
+**27 Chrome acceptance scenarios** (16 new Pro-shortcut cases), strict plugin
+ESLint, TypeScript and the full Chrome production build all pass. A separate
+read-only review found no direct model-write/query-submission path or actionable
+scope/cleanup bug. The feature remains limited to the native selection path;
+server-side billing for a new query was not tested.
